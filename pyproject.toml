@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cliff"
+version = "0.0.1"
+authors = [
+    {name = "Jeff Schriber", email = "jschriber7@gatech.edu"},
+]
+description = "Component-based Learned Intermolecular Force Field"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.5"
+dependencies = [
+    "numba",
+    "scipy",
+    "numpy",
+    "qcelemental",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "codecov",
+]
+
+[tool.setuptools]
+packages = ["cliff"]
+
+[tool.setuptools.package-data]
+cliff = ["cliff/models/large/adens/*.tar", "cliff/models/large/hirsh/*.tar", "cliff/models/large/mtp/*.tar"]

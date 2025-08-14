@@ -66,12 +66,18 @@ class Electrostatics:
 
             for i in range(sys.num_atoms):
                 self.mtps_cart[s1][i][0] = sys.multipoles[i][0] - constants.atomic_number[atom_ele[s1][i]] 
+                # TODO - UNCOMMENT THIS LINE TO RESET
+                # self.mtps_cart[s1][i][0] = sys.multipoles[i][0] # - constants.atomic_number[atom_ele[s1][i]] 
+                print(len(sys.multipoles[i]), sys.multipoles[i])
+                print(self.mtps_cart[s1][i][0], sys.multipoles[i][0], constants.atomic_number[atom_ele[s1][i]])
 
                 # temporary fix to work with both cart (from NN) and sphere (from KRR)
                 if len(sys.multipoles[i]) == 13:   
+                    print("Multipoles already in cartesian format")
                     for n in range(1,13):
                         self.mtps_cart[s1][i][n] = sys.multipoles[i][n]
                 elif len(sys.multipoles[i]) == 9:
+                    print("Converting spherical multipoles to cartesian")
                     self.mtps_cart[s1][i][1] = sys.multipoles[i][1]
                     self.mtps_cart[s1][i][2] = sys.multipoles[i][2]
                     self.mtps_cart[s1][i][3] = sys.multipoles[i][3]
@@ -87,6 +93,7 @@ class Electrostatics:
         'Convert multipole interactions'
 
         nsys = len(self.systems)
+        print('Getting multipole coefficients')
         self.get_mtp_coefficients(stone_convention)
         # Setup list of atoms to sum over
         atom_coord = []
@@ -109,6 +116,8 @@ class Electrostatics:
             # this is a matrix, natom x 13
             # contains ALL multipoles for sys 1
             mi = self.mtps_cart[ s1]
+            print(f"System {s1} multipoles:")
+            print(mi)
             for s2 in range(s1+1, nsys):
                 mj = self.mtps_cart[s2]
 
@@ -151,16 +160,30 @@ class Electrostatics:
                         alpha2 = alphas[s2][atom2]
                         mj1 = mj[atom2,:] 
                         d_int = full_damped_interaction(crdi, crdj, alpha1, alpha2, self.cell)
-                        value = np.dot(mi1.T, np.dot(d_int, mj1)) 
+                        value = np.dot(mi1.T, np.dot(d_int, mj1))
                         elst3 += value
+                        print(atom1, atom2, value)
+                        print(mi1)
+                        print(mj1)
+                        print(d_int)
                         if self.decompose:
                             self.at_elst[atom1,atom2] += value
 
+        # TODO: keep all terms
         elst += (elst0 + elst1 + elst2 + elst3)
+        # elst += (elst1 + elst2 + elst3)
+        # elst += (elst3)
                     
 
         self.energy_elst = elst * constants.au2kcalmol
         self.at_elst *= constants.au2kcalmol
+        elst0 *= constants.au2kcalmol
+        elst1 *= constants.au2kcalmol
+        elst2 *= constants.au2kcalmol
+        elst3 *= constants.au2kcalmol
+        elst = elst0 + elst1 + elst2 + elst3
+        print(f"Elst: {elst0:.6f} + {elst1:.6f} + {elst2:.6f} + {elst3:.6f} = {elst:.6f}")
+        print(elst0 + elst1 + elst2 + elst3)
         return self.energy_elst
 
 def nuclear_rep(at_elst, coord1, coord2, ele1, ele2, cell):
@@ -211,6 +234,8 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
 
     e1r = np.exp(-1.0 * alpha1 * r)
     e2r = np.exp(-1.0 * alpha2 * r)
+    # e1r = 1
+    # e2r = 1
 
     it = np.zeros((13,13))
 
@@ -249,6 +274,13 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
         lam5 -= (1.0 + alpha1*r + 0.5*a1_2*r2 + (1.0/6.0)*a1_3*r3)*e1r
         lam7 -= (1.0 + alpha1*r + 0.5*a1_2*r2 + (1.0/6.0)*a1_3*r3 + (1.0/30.0)*a1_4*r4)*e1r
         lam9 -= (1.0 + alpha1*r + 0.5*a1_2*r2 + (1.0/6.0)*a1_3*r3 + (4.0/105.0)*a1_4*r4 + (1.0/210.0)*a1_4*alpha1*r5)*e1r
+
+    # TODO: REMOVE THE DAMPING BY SETTING ALL lam* = 1.0
+    # lam1 = 1.0
+    # lam3 = 1.0
+    # lam5 = 1.0
+    # lam7 = 1.0
+    # lam9 = 1.0
 
     # Indices for MTP moments:
     # 00  01  02  03  04  05  06  07  08  09  10  11  12
@@ -360,6 +392,10 @@ def charge_mtp_damped_interaction(coord1, coord2, alpha2, cell):
     lam_1 = 1.0 - np.exp(-1.0 * np.multiply(alpha2,r))
     lam_3 = 1.0 - (1.0 + np.multiply(alpha2,r)) * np.exp(-1.0*np.multiply(alpha2,r)) 
     lam_5 = 1.0 - (1.0 + np.multiply(alpha2,r) + (1.0/3.0)*np.multiply(np.square(alpha2),r2)) * np.exp(-1.0*np.multiply(alpha2,r))
+    # TODO: remove the damping by setting all lam* = 1.0
+    # lam_1 = 1.0
+    # lam_3 = 1.0
+    # lam_5 = 1.0
 
     it = np.zeros((len(coord2),(13)))
     # Charge charge
