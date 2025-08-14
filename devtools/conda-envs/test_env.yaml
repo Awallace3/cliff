@@ -3,19 +3,17 @@ channels:
   - conda-forge
 dependencies:
     # Base depends
-  - python
+  - python=3.9
   - pip
   - numba
   - scipy
-  - numpy
+  - numpy=1.*
   - qcelemental
+  - setuptools<=60.0.0
 
     # Testing
   - pytest
-  - pytest-cov
-  - codecov
 
     # Pip-only installs
   - pip:
     - qml
-    - codecov

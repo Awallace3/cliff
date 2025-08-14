@@ -207,7 +207,13 @@ def predict_atomic_properties(mol, models):
     hirsh.predict_mol(mol, force_predict=True)
     adens.predict_mol(mol, force_predict=True)
     mtp_ml.predict_mol(mol, force_predict=True)
- 
+    print("props: hirsh, vw, mtp")
+    print(mol.hirshfeld_ratios.shape)
+    print(mol.valence_widths.shape)
+    print(mol.multipoles.shape)
+    print(mol.hirshfeld_ratios)
+    print(mol.valence_widths)
+    print(mol.multipoles)
     return mol    
     
 def save_atomic_properties(mol,path):
@@ -243,10 +249,12 @@ def load_atomic_properties(mol,path):
     The System object finds the appropriate 
     """
 
+    print(f"{path}/{mol.name}-h.npy")
     mol.hirshfeld_ratios = np.load(path + "/" + mol.name + "-h.npy")  
     mol.valence_widths = np.load(path + "/" + mol.name + "-vw.npy")  
     mol.multipoles = np.load(path + "/" + mol.name + "-mtp.npy")  
         
+    print(mol.multipoles)
     return mol
 
 def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=False, infile=None, options=None):
@@ -287,7 +295,7 @@ def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=Fals
 
         # get the monomers
         for dimer in d_list:
-            try:
+            # try:
                 mon_a, mon_b = mol_to_sys(dimer, options)
                 if load_path is None:
                     mon_a = predict_atomic_properties(mon_a,models)
@@ -297,9 +305,9 @@ def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=Fals
                     mon_b = load_atomic_properties(mon_b,load_path)  
                 mon_a_list.append(mon_a)    
                 mon_b_list.append(mon_b)    
-            except:
-                mon_a_list.append(None)    
-                mon_b_list.append(None)    
+            # except:
+            #     mon_a_list.append(None)    
+            #     mon_b_list.append(None)    
     elif (ml_type.upper() == "NN") and using_apnet:
         ma_s = []
         mb_s = []
