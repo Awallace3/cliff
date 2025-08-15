@@ -66,10 +66,8 @@ class Electrostatics:
 
             for i in range(sys.num_atoms):
                 self.mtps_cart[s1][i][0] = sys.multipoles[i][0] - constants.atomic_number[atom_ele[s1][i]] 
-                # TODO - UNCOMMENT THIS LINE TO RESET
+                # TODO - COMMENT LINE BELOW TO RESET
                 # self.mtps_cart[s1][i][0] = sys.multipoles[i][0] # - constants.atomic_number[atom_ele[s1][i]] 
-                print(len(sys.multipoles[i]), sys.multipoles[i])
-                print(self.mtps_cart[s1][i][0], sys.multipoles[i][0], constants.atomic_number[atom_ele[s1][i]])
 
                 # temporary fix to work with both cart (from NN) and sphere (from KRR)
                 if len(sys.multipoles[i]) == 13:   
@@ -234,8 +232,6 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
 
     e1r = np.exp(-1.0 * alpha1 * r)
     e2r = np.exp(-1.0 * alpha2 * r)
-    # e1r = 1
-    # e2r = 1
 
     it = np.zeros((13,13))
 

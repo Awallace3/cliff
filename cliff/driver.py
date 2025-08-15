@@ -248,12 +248,9 @@ def load_atomic_properties(mol,path):
     from files and stores them in the input System object.
     The System object finds the appropriate 
     """
-
-    print(f"{path}/{mol.name}-h.npy")
     mol.hirshfeld_ratios = np.load(path + "/" + mol.name + "-h.npy")  
     mol.valence_widths = np.load(path + "/" + mol.name + "-vw.npy")  
     mol.multipoles = np.load(path + "/" + mol.name + "-mtp.npy")  
-        
     print(mol.multipoles)
     return mol
 
