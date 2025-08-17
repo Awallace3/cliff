@@ -207,13 +207,13 @@ def predict_atomic_properties(mol, models):
     hirsh.predict_mol(mol, force_predict=True)
     adens.predict_mol(mol, force_predict=True)
     mtp_ml.predict_mol(mol, force_predict=True)
-    print("props: hirsh, vw, mtp")
-    print(mol.hirshfeld_ratios.shape)
-    print(mol.valence_widths.shape)
-    print(mol.multipoles.shape)
-    print(mol.hirshfeld_ratios)
-    print(mol.valence_widths)
-    print(mol.multipoles)
+    # print("props: hirsh, vw, mtp")
+    # print(mol.hirshfeld_ratios.shape)
+    # print(mol.valence_widths.shape)
+    # print(mol.multipoles.shape)
+    # print(mol.hirshfeld_ratios)
+    # print(mol.valence_widths)
+    # print(mol.multipoles)
     return mol    
     
 def save_atomic_properties(mol,path):
@@ -251,7 +251,7 @@ def load_atomic_properties(mol,path):
     mol.hirshfeld_ratios = np.load(path + "/" + mol.name + "-h.npy")  
     mol.valence_widths = np.load(path + "/" + mol.name + "-vw.npy")  
     mol.multipoles = np.load(path + "/" + mol.name + "-mtp.npy")  
-    print(mol.multipoles)
+    # print(mol.multipoles)
     return mol
 
 def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=False, infile=None, options=None):
@@ -335,13 +335,13 @@ def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=Fals
         raise Exception(f"ML type {ml_type} not understood!") 
 
     f = time.time()
-    print(f"Time spent predicting atomic properties: {f-s} s")
+    # print(f"Time spent predicting atomic properties: {f-s} s")
         
     for ma, mb in zip(mon_a_list,mon_b_list):
-        try:
-            en = energy_kernel(ma, mb, options, return_pairs=return_pairs) 
-        except:
-            en = None
+        # try:
+        en = energy_kernel(ma, mb, options, return_pairs=return_pairs) 
+        # except:
+        #     en = None
 
         energies.append(en)
 
@@ -674,5 +674,5 @@ def fill_monomer_lists(d_list, options, ml_type, load_path):
         raise Exception(f"ML type {ml_type} not understood!") 
 
     f = time.time()
-    print(f"Time spent predicting atomic properties: {f-s} s")
+    # print(f"Time spent predicting atomic properties: {f-s} s")
     return mon_a_list, mon_b_list

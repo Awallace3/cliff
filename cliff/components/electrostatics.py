@@ -71,11 +71,11 @@ class Electrostatics:
 
                 # temporary fix to work with both cart (from NN) and sphere (from KRR)
                 if len(sys.multipoles[i]) == 13:   
-                    print("Multipoles already in cartesian format")
+                    # print("Multipoles already in cartesian format")
                     for n in range(1,13):
                         self.mtps_cart[s1][i][n] = sys.multipoles[i][n]
                 elif len(sys.multipoles[i]) == 9:
-                    print("Converting spherical multipoles to cartesian")
+                    # print("Converting spherical multipoles to cartesian")
                     self.mtps_cart[s1][i][1] = sys.multipoles[i][1]
                     self.mtps_cart[s1][i][2] = sys.multipoles[i][2]
                     self.mtps_cart[s1][i][3] = sys.multipoles[i][3]
@@ -91,7 +91,7 @@ class Electrostatics:
         'Convert multipole interactions'
 
         nsys = len(self.systems)
-        print('Getting multipole coefficients')
+        # print('Getting multipole coefficients')
         self.get_mtp_coefficients(stone_convention)
         # Setup list of atoms to sum over
         atom_coord = []
@@ -114,8 +114,8 @@ class Electrostatics:
             # this is a matrix, natom x 13
             # contains ALL multipoles for sys 1
             mi = self.mtps_cart[ s1]
-            print(f"System {s1} multipoles:")
-            print(mi)
+            # print(f"System {s1} multipoles:")
+            # print(mi)
             for s2 in range(s1+1, nsys):
                 mj = self.mtps_cart[s2]
 
@@ -160,16 +160,15 @@ class Electrostatics:
                         d_int = full_damped_interaction(crdi, crdj, alpha1, alpha2, self.cell)
                         value = np.dot(mi1.T, np.dot(d_int, mj1))
                         elst3 += value
-                        print(atom1, atom2, value)
-                        print(mi1)
-                        print(mj1)
-                        print(d_int)
+                        # print(atom1, atom2, value)
+                        # print(mi1)
+                        # print(mj1)
+                        # print(d_int[0])
                         if self.decompose:
                             self.at_elst[atom1,atom2] += value
 
         # TODO: keep all terms
         elst += (elst0 + elst1 + elst2 + elst3)
-        # elst += (elst1 + elst2 + elst3)
         # elst += (elst3)
                     
 
@@ -179,9 +178,8 @@ class Electrostatics:
         elst1 *= constants.au2kcalmol
         elst2 *= constants.au2kcalmol
         elst3 *= constants.au2kcalmol
-        elst = elst0 + elst1 + elst2 + elst3
-        print(f"Elst: {elst0:.6f} + {elst1:.6f} + {elst2:.6f} + {elst3:.6f} = {elst:.6f}")
-        print(elst0 + elst1 + elst2 + elst3)
+        # print(f"Elst: {elst0:.6f} + {elst1:.6f} + {elst2:.6f} + {elst3:.6f} = {elst:.6f}")
+        # print(elst0 + elst1 + elst2 + elst3)
         return self.energy_elst
 
 def nuclear_rep(at_elst, coord1, coord2, ele1, ele2, cell):
