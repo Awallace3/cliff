@@ -16,7 +16,7 @@ import cliff.helpers.utils as utils
 class Electrostatics:
     'Electrostatic class computes cp-corrected multipole electrostatics'
 
-    def __init__(self, options,sys, cell):
+    def __init__(self, options,sys, cell, elst_modifications={}):
         # Set logger
 
         name = options.name
@@ -36,6 +36,8 @@ class Electrostatics:
 
         self.decompose = True
         self.at_elst = np.zeros((0,0))
+        self.damping = elst_modifications.get("damping", True)
+        self.MTP_MTP_only = elst_modifications.get("MTP_MTP_only", False)
 
     def add_system(self, sys):
         self.systems.append(sys)
@@ -65,9 +67,11 @@ class Electrostatics:
                 exit(1)
 
             for i in range(sys.num_atoms):
-                self.mtps_cart[s1][i][0] = sys.multipoles[i][0] - constants.atomic_number[atom_ele[s1][i]] 
                 # TODO - COMMENT LINE BELOW TO RESET
-                # self.mtps_cart[s1][i][0] = sys.multipoles[i][0] # - constants.atomic_number[atom_ele[s1][i]] 
+                if self.MTP_MTP_only:
+                    self.mtps_cart[s1][i][0] = sys.multipoles[i][0] # - constants.atomic_number[atom_ele[s1][i]] 
+                else:
+                    self.mtps_cart[s1][i][0] = sys.multipoles[i][0] - constants.atomic_number[atom_ele[s1][i]] 
 
                 # temporary fix to work with both cart (from NN) and sphere (from KRR)
                 if len(sys.multipoles[i]) == 13:   
@@ -133,7 +137,7 @@ class Electrostatics:
                 # 2. nuclear-MTP interaction
                 ## TODO: avoid this loop over atoms in sys
                 for ele, Z in enumerate(atom_nums[s1]):
-                    zm_int = charge_mtp_damped_interaction(atom_coord[s1][ele], atom_coord[s2], alphas[s2], self.cell)
+                    zm_int = charge_mtp_damped_interaction(atom_coord[s1][ele], atom_coord[s2], alphas[s2], self.cell, self.damping)
                     i1 = Z*np.einsum('ij,ij->i', zm_int,mj)
                     elst1 += np.sum(i1)
                     if self.decompose:
@@ -141,7 +145,7 @@ class Electrostatics:
                             self.at_elst[ele,n] += value
 
                 for ele, Z in enumerate(atom_nums[s2]):
-                    zm_int = charge_mtp_damped_interaction(atom_coord[s2][ele], atom_coord[s1], alphas[s1], self.cell)
+                    zm_int = charge_mtp_damped_interaction(atom_coord[s2][ele], atom_coord[s1], alphas[s1], self.cell, self.damping)
                     i1 = Z*np.einsum('ij,ij->i', zm_int,mi)
                     elst2 += np.sum(i1)
                     if self.decompose:
@@ -157,7 +161,7 @@ class Electrostatics:
                         crdj = atom_coord[s2][atom2]        
                         alpha2 = alphas[s2][atom2]
                         mj1 = mj[atom2,:] 
-                        d_int = full_damped_interaction(crdi, crdj, alpha1, alpha2, self.cell)
+                        d_int = full_damped_interaction(crdi, crdj, alpha1, alpha2, self.cell, self.damping)
                         value = np.dot(mi1.T, np.dot(d_int, mj1))
                         elst3 += value
                         # print(atom1, atom2, value)
@@ -168,8 +172,10 @@ class Electrostatics:
                             self.at_elst[atom1,atom2] += value
 
         # TODO: keep all terms
-        elst += (elst0 + elst1 + elst2 + elst3)
-        # elst += (elst3)
+        if self.MTP_MTP_only:
+            elst += (elst3)
+        else:
+            elst += (elst0 + elst1 + elst2 + elst3)
                     
 
         self.energy_elst = elst * constants.au2kcalmol
@@ -194,7 +200,7 @@ def nuclear_rep(at_elst, coord1, coord2, ele1, ele2, cell):
 
     return np.dot(ele1, np.matmul(r,ele2))
 
-def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
+def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell, damping):
     """Full damped interaction tensor"""
     vec = constants.a2b*(cell.pbc_distance(coord1, coord2))
     r = np.linalg.norm(vec)
@@ -270,11 +276,12 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
         lam9 -= (1.0 + alpha1*r + 0.5*a1_2*r2 + (1.0/6.0)*a1_3*r3 + (4.0/105.0)*a1_4*r4 + (1.0/210.0)*a1_4*alpha1*r5)*e1r
 
     # TODO: REMOVE THE DAMPING BY SETTING ALL lam* = 1.0
-    # lam1 = 1.0
-    # lam3 = 1.0
-    # lam5 = 1.0
-    # lam7 = 1.0
-    # lam9 = 1.0
+    if damping == False:
+        lam1 = 1.0
+        lam3 = 1.0
+        lam5 = 1.0
+        lam7 = 1.0
+        lam9 = 1.0
 
     # Indices for MTP moments:
     # 00  01  02  03  04  05  06  07  08  09  10  11  12
@@ -357,7 +364,7 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell):
 
     return it 
 
-def charge_mtp_damped_interaction(coord1, coord2, alpha2, cell):
+def charge_mtp_damped_interaction(coord1, coord2, alpha2, cell, damping=True):
     """Return interaction vector for charge-mtp (up to quadripoles) with damping"""
     """First pass will be damping from Rackers PCCP 2017"""
     
@@ -387,9 +394,10 @@ def charge_mtp_damped_interaction(coord1, coord2, alpha2, cell):
     lam_3 = 1.0 - (1.0 + np.multiply(alpha2,r)) * np.exp(-1.0*np.multiply(alpha2,r)) 
     lam_5 = 1.0 - (1.0 + np.multiply(alpha2,r) + (1.0/3.0)*np.multiply(np.square(alpha2),r2)) * np.exp(-1.0*np.multiply(alpha2,r))
     # TODO: remove the damping by setting all lam* = 1.0
-    # lam_1 = 1.0
-    # lam_3 = 1.0
-    # lam_5 = 1.0
+    if damping == False:
+        lam_1 = 1.0
+        lam_3 = 1.0
+        lam_5 = 1.0
 
     it = np.zeros((len(coord2),(13)))
     # Charge charge

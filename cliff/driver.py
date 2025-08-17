@@ -254,7 +254,15 @@ def load_atomic_properties(mol,path):
     # print(mol.multipoles)
     return mol
 
-def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=False, infile=None, options=None):
+def predict_from_dimers(
+    dimers,
+    ml_type='KRR',
+    load_path=None,
+    return_pairs=False,
+    infile=None,
+    options=None,
+    elst_modifications={},
+):
     '''
     Compute energy components from a list of dimers.
     Uses all default options, turns off logging
@@ -293,15 +301,24 @@ def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=Fals
         # get the monomers
         for dimer in d_list:
             # try:
-                mon_a, mon_b = mol_to_sys(dimer, options)
-                if load_path is None:
-                    mon_a = predict_atomic_properties(mon_a,models)
-                    mon_b = predict_atomic_properties(mon_b,models)
-                else:
-                    mon_a = load_atomic_properties(mon_a,load_path)  
-                    mon_b = load_atomic_properties(mon_b,load_path)  
-                mon_a_list.append(mon_a)    
-                mon_b_list.append(mon_b)    
+            mon_a, mon_b = mol_to_sys(dimer, options)
+            if load_path is None:
+                mon_a = predict_atomic_properties(mon_a,models)
+                mon_b = predict_atomic_properties(mon_b,models)
+            else:
+                mon_a = load_atomic_properties(mon_a,load_path)  
+                mon_b = load_atomic_properties(mon_b,load_path)  
+            if not elst_modifications.get("q", True):
+                mon_a.multipoles[:,0] = 0.0
+                mon_b.multipoles[:,0] = 0.0
+            if not elst_modifications.get("mu", True):
+                mon_a.multipoles[:,1:4] = 0.0
+                mon_b.multipoles[:,1:4] = 0.0
+            if not elst_modifications.get("theta", True):
+                mon_a.multipoles[:,4:13] = 0.0
+                mon_b.multipoles[:,4:13] = 0.0
+            mon_a_list.append(mon_a)    
+            mon_b_list.append(mon_b)    
             # except:
             #     mon_a_list.append(None)    
             #     mon_b_list.append(None)    
@@ -339,7 +356,7 @@ def predict_from_dimers(dimers, ml_type='KRR', load_path=None, return_pairs=Fals
         
     for ma, mb in zip(mon_a_list,mon_b_list):
         # try:
-        en = energy_kernel(ma, mb, options, return_pairs=return_pairs) 
+        en = energy_kernel(ma, mb, options, return_pairs=return_pairs, elst_modifications=elst_modifications) 
         # except:
         #     en = None
 
@@ -445,13 +462,13 @@ def predict_from_monomer_list(monomer_a, monomer_b,ml_type='KRR', load_path=None
 
     return energies
 
-def energy_kernel(mon_a, mon_b, options, return_pairs=False):
+def energy_kernel(mon_a, mon_b, options, return_pairs=False, elst_modifications={}):
     
     #defines cell parameters for grid computations
     cell = Cell.lattice_parameters(100., 100., 100.)
 
     #initializes relevant classes with monomer A
-    mtp = Electrostatics(options,mon_a, cell)
+    mtp = Electrostatics(options,mon_a, cell, elst_modifications=elst_modifications)
     ind = InductionCalc(options,mon_a, cell)
     rep = Repulsion(options, mon_a, cell)
     disp = Dispersion(options, mon_a, cell) 
