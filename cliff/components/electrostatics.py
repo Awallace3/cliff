@@ -133,7 +133,12 @@ class Electrostatics:
                             self.at_elst[i,j] = r[i,j]*a*b
 
                 elst0 =  np.dot(atom_nums[s1], np.matmul(r,atom_nums[s2]))
+                print("ZA-ZB")
+                for i in range(len(atom_nums[s1])):
+                    for j in range(len(atom_nums[s2])):
+                        print(atom_nums[s1][i], atom_nums[s2][j], f"{r[i,j]:.8f}", f"{atom_nums[s1][i] * r[i,j] * atom_nums[s2][j]:.8f}")
 
+                print("ZA-MB")
                 # 2. nuclear-MTP interaction
                 ## TODO: avoid this loop over atoms in sys
                 for ele, Z in enumerate(atom_nums[s1]):
@@ -143,7 +148,15 @@ class Electrostatics:
                     if self.decompose:
                         for n, value in enumerate(i1):
                             self.at_elst[ele,n] += value
+                            # print(f"{Z}, {atom_nums[s2][n]}, q={mj[n, 0]:.4f}, {zm_int[n, 0]:.4f}: {value:.6f}")
+                            # assert Z * mj[n, 0] * zm_int[n, 0] == value
+                            Z_q = Z * mj[n, 0] * zm_int[n, 0]
+                            Z_mu = Z * np.dot(mj[n,1:4], zm_int[n,1:4])
+                            Z_theta = Z * np.dot(mj[n,4:13], zm_int[n,4:13])
+                            print(f"  Z*q: {Z_q:.8f}, Z*mu: {Z_mu:.8f}, Z*theta: {Z_theta:.8f}")
+                            assert np.allclose(Z_q + Z_mu + Z_theta, value), f"{Z_q} + {Z_mu} + {Z_theta} = {Z_q + Z_mu + Z_theta} != {value}"
 
+                print("ZB-MA")
                 for ele, Z in enumerate(atom_nums[s2]):
                     zm_int = charge_mtp_damped_interaction(atom_coord[s2][ele], atom_coord[s1], alphas[s1], self.cell, self.damping)
                     i1 = Z*np.einsum('ij,ij->i', zm_int,mi)
@@ -151,7 +164,15 @@ class Electrostatics:
                     if self.decompose:
                         for n, value in enumerate(i1):
                             self.at_elst[n,ele] += value
+                            # print(f"{Z}, {atom_nums[s1][n]}, q={mi[n, 0]:.4f}, {zm_int[n, 0]:.4f}: {value:.6f}")
+                            # assert Z * mi[n, 0] * zm_int[n, 0] == value
+                            Z_q = Z * mi[n, 0] * zm_int[n, 0]
+                            Z_mu = Z * np.dot(mi[n,1:4], zm_int[n,1:4])
+                            Z_theta = Z * np.dot(mi[n,4:13], zm_int[n,4:13])
+                            print(f"  Z*q: {Z_q:.8f}, Z*mu: {Z_mu:.8f}, Z*theta: {Z_theta:.8f}")
+                            assert np.allclose(Z_q + Z_mu + Z_theta, value), f"{Z_q} + {Z_mu} + {Z_theta} = {Z_q + Z_mu + Z_theta} != {value}"
 
+                print("MTP-MTP")
                 # 3. MTP-MTP
                 for atom1 in range(len(atom_nums[s1])):
                     crdi = atom_coord[s1][atom1]        
@@ -164,10 +185,31 @@ class Electrostatics:
                         d_int = full_damped_interaction(crdi, crdj, alpha1, alpha2, self.cell, self.damping)
                         value = np.dot(mi1.T, np.dot(d_int, mj1))
                         elst3 += value
-                        # print(atom1, atom2, value)
-                        # print(mi1)
-                        # print(mj1)
-                        # print(d_int[0])
+                        q_q = mi1[0] * mj1[0] * d_int[0,0]
+                        q_mu = np.dot(mi1[1:4], np.dot(d_int[1:4,0], mj1[0])) + np.dot(mj1[1:4], np.dot(d_int[0,1:4], mi1[0])) + np.dot(mi1[1:4], np.dot(d_int[1:4,1:4], mj1[1:4]))
+                        q_theta = np.dot(mi1[4:13], np.dot(d_int[4:13,0], mj1[0]))
+                        # print(d_int[4:13,0])
+                        q_theta += np.dot(mj1[4:13], np.dot(d_int[0,4:13], mi1[0]))
+                        print( "q-Q = ",
+                            np.dot(mi1[4:13], np.dot(d_int[4:13,0], mj1[0])) +
+                            np.dot(mj1[4:13], np.dot(d_int[0,4:13], mi1[0])) 
+                        )
+                        q_theta += np.dot(mi1[4:13], np.dot(d_int[4:13,1:4], mj1[1:4]))
+                        q_theta -= np.dot(mj1[4:13], np.dot(d_int[4:13,1:4], mi1[1:4]))
+
+                        print(
+                            'mu-Q',
+                             np.dot(mi1[4:13], np.dot(d_int[4:13,1:4], mj1[1:4]))
+                             -np.dot(mj1[4:13], np.dot(d_int[4:13,1:4], mi1[1:4]))
+                        )
+                        q_theta += np.dot(mi1[4:13], np.dot(d_int[4:13,4:13], mj1[4:13]))
+                        print(
+                            'Q-Q',
+                                np.dot(mi1[4:13], np.dot(d_int[4:13,4:13], mj1[4:13]))
+                        )
+                        print(f"{atom_nums[s1][atom1]}-{atom_nums[s2][atom2]}: {value:.6f} = {q_q:.6f} + {q_mu:.6f} + {q_theta:.6f}")
+                        assert np.allclose(q_q + q_mu + q_theta, value), f"{q_q} + {q_mu} + {q_theta} = {q_q + q_mu + q_theta} != {value}"
+
                         if self.decompose:
                             self.at_elst[atom1,atom2] += value
 
@@ -184,7 +226,7 @@ class Electrostatics:
         elst1 *= constants.au2kcalmol
         elst2 *= constants.au2kcalmol
         elst3 *= constants.au2kcalmol
-        # print(f"Elst: {elst0:.6f} + {elst1:.6f} + {elst2:.6f} + {elst3:.6f} = {elst:.6f}")
+        print(f"Elst: {elst0:.6f} + {elst1:.6f} + {elst2:.6f} + {elst3:.6f} = {elst * constants.au2kcalmol:.6f}")
         # print(elst0 + elst1 + elst2 + elst3)
         return self.energy_elst
 
@@ -239,6 +281,7 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell, damping):
 
     it = np.zeros((13,13))
 
+    # MTP-MTP interaction
     # Get the lambdas
     lam1 = 1.0
     lam3 = 1.0
@@ -286,6 +329,9 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell, damping):
     # Indices for MTP moments:
     # 00  01  02  03  04  05  06  07  08  09  10  11  12
     #  .,  x,  y,  z, xx, xy, xz, yx, yy, yz, zx, zy, zz
+    # print(f"{r:.6f}, {lam1=:.8f}")
+
+    # print(f"{r:6f}, {lam1=:.8f}, {lam3=:.8f}\n {lam5=:.8f}, {lam7=:.8f}, {lam9=:.8f}")
 
     # charge-charge
     it[0][0] = ri * lam1

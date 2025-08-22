@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 # Atomic units to kcal/mol
-au2kcalmol    = 627.5095
+# au2kcalmol    = 627.5095
+au2kcalmol = 627.5094737775374 # more significant digits
 # angstrom to bohr
-a2b           = 1.8897268
+# a2b           = 1.8897268
+a2b = 1.8897261254578281
 # Bohr to Angstrom
-b2a           = 0.529177
+# b2a           = 0.529177
+b2a = 0.52917721067
 # Multipole conversion: Hartree and bohr to kcal/mol (332.064)
 hbohr2kcalmol = 332.063595
 
