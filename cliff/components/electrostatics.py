@@ -324,6 +324,17 @@ def full_damped_interaction(coord1, coord2, alpha1, alpha2, cell, damping):
     it[2,9] = it[2,11] = it[3,8] = 15*y2*z*ri7*lam7 - 3*z*ri5*lam5 # yyz yzy zyy
     it[2,12] = it[3,9] = it[3,11] = -it[1,5] -it[2,8] # yzz zyz zzy
     it[3,12] = -it[1,6] -it[2,9] # zzz
+    tmp = np.ones((3, 3))
+    tmp[0, 0] = it[1, 4]
+    tmp[0, 1] = it[1, 5]
+    tmp[0, 2] = it[1, 6]
+    tmp[1, 0] = it[1, 5]
+    tmp[1, 1] = it[1, 8]
+    tmp[1, 2] = it[1, 9]
+    tmp[2, 0] = it[0, 6]
+    tmp[2, 1] = it[0, 9]
+    tmp[2, 2] = it[0, 12]
+    print(tmp)
     # Quadrupole quadrupole
     it[4,4] = 105*x4*ri9*lam9 - 90*x2*ri7*lam7 + 9*ri5*lam5 # xxxx
     it[4,5] = it[4,7] =  105*x3*y*ri9*lam9 - 45*x*y*ri7*lam7 # xxxy xxyx
